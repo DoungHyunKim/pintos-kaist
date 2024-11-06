@@ -128,11 +128,8 @@ timer_interrupt (struct intr_frame *args UNUSED) {
 	ticks++;
 	thread_tick ();
 	
-	/* project1-Alarm Clock */
-	if (get_next_tick_to_awake() <= ticks)
-	{
-		thread_awake(ticks);
-	}
+	/* project1-Alarm Clock Refactoring */
+	thread_check_awake(ticks);
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer

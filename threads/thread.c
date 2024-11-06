@@ -160,6 +160,13 @@ thread_tick (void) {
 		intr_yield_on_return ();
 }
 
+/* projec1-Alarm Clock Refactoring*/
+void thread_check_awake(int64_t current_ticks) {
+    if (next_tick_to_awake <= current_ticks) {
+        thread_awake(current_ticks);
+    }
+}
+
 /* Prints thread statistics. */
 void
 thread_print_stats (void) {
@@ -363,14 +370,11 @@ thread_awake (int64_t wakeup_tick)
 }
 
 /* project1-Alarm Clock */
-void
-update_next_tick_to_awake (int64_t ticks)
+void update_next_tick_to_awake (int64_t ticks)
 {
-	// find smallest tick
-	// 대기 중인 스레드들 중 가장 빠릴 깨어나야 할 시각을 관리
-	// 가장 작은 tick 값을 유지하는 이유는 시스템이 효율적으로 꺠어날 시간을 추적. 
-	// 필요한 시점에만 알람을 발생시켜 불필요한 CPU 사용을 줄인다. 
-	next_tick_to_awake = (next_tick_to_awake > ticks) ? ticks : next_tick_to_awake;
+    if (next_tick_to_awake > ticks) {
+        next_tick_to_awake = ticks;
+    }
 }
 
 /* project1-Alarm Clock */
