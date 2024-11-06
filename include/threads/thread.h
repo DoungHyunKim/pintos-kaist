@@ -120,7 +120,13 @@ void thread_sleep (int64_t ticks);
 void thread_awake (int64_t ticks);
 void update_next_tick_to_awake (int64_t ticks);
 int64_t get_next_tick_to_awake (void);
+/* project1-Priority Scheduling */
+void test_max_priority(void);
+bool cmp_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
 // struct thread *thread_get_idle_thread(void);
+/** project1-Priority Scheduling */
+void test_max_priority(void);
+bool cmp_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
 
 
 void thread_init (void);
