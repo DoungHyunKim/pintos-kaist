@@ -245,6 +245,11 @@ thread_create (const char *name, int priority,
 	/* Add to run queue. */
 	thread_unblock (t);
 
+	/* project1-Priority Scheduling */
+	if (t->priority > thread_current()->priority){
+		thread_yield();
+	}
+
 	return tid;
 }
 
@@ -269,7 +274,12 @@ thread_block (void) {
    This function does not preempt the running thread.  This can
    be important: if the caller had disabled interrupts itself,
    it may expect that it can atomically unblock a thread and
-   update other data. */
+   update other data. 
+   1. 스레드가 유효하고 THREAD_BLOCKED 상태인지 확인
+   2. 인터럽트를 비활성화하고, t 스레드를 ready_list에 추가
+   3. 스레드의 상태를 THREAD_READY로 변경
+   4. 인터럽트를 이전 상태로 복원
+   */
 void
 thread_unblock (struct thread *t) {
 	enum intr_level old_level;
@@ -329,6 +339,18 @@ thread_exit (void) {
 	do_schedule (THREAD_DYING);
 	NOT_REACHED ();
 }
+/** project1-Priority Scheduling */
+bool 
+cmp_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED) 
+{
+    struct thread*thread_a = list_entry(a, struct thread, elem);
+    struct thread*thread_b = list_entry(b, struct thread, elem);
+
+	if (thread_a == NULL || thread_b == NULL)
+		return false;
+
+    return thread_a->priority > thread_b->priority;
+}
 
 /* Yields the CPU.  The current thread is not put to sleep and
    may be scheduled again immediately at the scheduler's whim. */
@@ -341,7 +363,13 @@ thread_yield (void) {
 
 	old_level = intr_disable (); // 인터럽트 비활성화
 	if (curr != idle_thread) 
-		list_push_back (&ready_list, &curr->elem); // 레디리스트.append(현재)
+		//list_push_back (&ready_list, &curr->elem); // 레디리스트.append(현재)
+		/* 
+		* project1-Priority Scheduling
+		* 삽입할 때 정렬 
+		*/
+		list_insert_ordered(&ready_list, &curr->elem, cmp_priority, NULL);
+
 	do_schedule (THREAD_READY); // 쓰래드 상태 레디로 변경
 	intr_set_level (old_level); // 인터럽트 상태 복원
 	/*
@@ -390,11 +418,25 @@ get_next_tick_to_awake(void)
 {
 	return next_tick_to_awake;
 }
+/** project1-Priority Scheduling */
+void 
+test_max_priority (void) 
+{
+    if (list_empty(&ready_list))
+        return;
+
+    struct thread *th = list_entry(list_front(&ready_list), struct thread, elem);
+
+    if (thread_get_priority() < th->priority)
+        thread_yield();
+}
 
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
 thread_set_priority (int new_priority) {
 	thread_current ()->priority = new_priority;
+	/** project1-Priority Scheduling */
+	test_max_priority();
 }
 
 /* Returns the current thread's priority. */
