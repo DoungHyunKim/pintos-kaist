@@ -24,6 +24,10 @@
    Do not modify this value. */
 #define THREAD_BASIC 0xd42df210
 
+/* project1-Alarm Clock */
+static struct list sleep_list;
+static int64_t next_tick_to_awake;
+
 /* List of processes in THREAD_READY state, that is, processes
    that are ready to run but not actually running. */
 static struct list ready_list;
@@ -109,6 +113,8 @@ thread_init (void) {
 	lock_init (&tid_lock);
 	list_init (&ready_list);
 	list_init (&destruction_req);
+	list_init (&sleep_list); /* project1-Alarm Clock */
+
 
 	/* Set up a thread structure for the running thread. */
 	initial_thread = running_thread ();
@@ -159,6 +165,30 @@ void
 thread_print_stats (void) {
 	printf ("Thread: %lld idle ticks, %lld kernel ticks, %lld user ticks\n",
 			idle_ticks, kernel_ticks, user_ticks);
+}
+/** project1-Alarm Clock */
+void 
+thread_sleep (int64_t ticks) 
+{
+    struct thread *this;
+    this = thread_current();
+
+    if (this == idle_thread) // idle -> stop
+	{  
+        ASSERT(0);
+    } else 
+	{
+        enum intr_level old_level;
+        old_level = intr_disable();  // pause interrupt
+
+        update_next_tick_to_awake(this->wakeup_tick = ticks);  // update awake ticks
+
+        list_push_back(&sleep_list, &this->elem);  // push to sleep_list
+
+        thread_block();  // block this thread
+
+        intr_set_level(old_level);  // continue interrupt
+    }
 }
 
 /* Creates a new kernel thread named NAME with the given initial
@@ -307,6 +337,49 @@ thread_yield (void) {
 	do_schedule (THREAD_READY);
 	intr_set_level (old_level);
 }
+/** project1-Alarm Clock */
+void 
+thread_awake (int64_t wakeup_tick) 
+{
+    next_tick_to_awake = INT64_MAX;
+
+    struct list_elem *sleeping;
+    sleeping = list_begin(&sleep_list);  
+
+    while (sleeping != list_end(&sleep_list)) {  
+        struct thread *th = list_entry(sleeping, struct thread, elem);
+
+        if (wakeup_tick >= th->wakeup_tick) 
+		{
+            sleeping = list_remove(&th->elem);  
+            thread_unblock(th);                 
+        } 
+		else 
+		{
+            sleeping = list_next(sleeping);             
+            update_next_tick_to_awake(th->wakeup_tick);  
+        }
+    }
+}
+
+/* project1-Alarm Clock */
+void
+update_next_tick_to_awake (int64_t ticks)
+{
+	// find smallest tick
+	// 대기 중인 스레드들 중 가장 빠릴 깨어나야 할 시각을 관리
+	// 가장 작은 tick 값을 유지하는 이유는 시스템이 효율적으로 꺠어날 시간을 추적. 
+	// 필요한 시점에만 알람을 발생시켜 불필요한 CPU 사용을 줄인다. 
+	next_tick_to_awake = (next_tick_to_awake > ticks) ? ticks : next_tick_to_awake;
+}
+
+/* project1-Alarm Clock */
+int64_t
+get_next_tick_to_awake(void)
+{
+	return next_tick_to_awake;
+}
+
 
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
