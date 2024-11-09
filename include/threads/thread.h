@@ -93,6 +93,12 @@ struct thread {
 	int priority;                       /* Priority. */
 	int64_t wakeup_tick;                /* project1-Alarm Clock */
 
+	/* project1-Priority Donation*/
+	int init_priority;
+	struct lock *wait_on_lock;
+	struct list donations;
+	struct list_elem donation_elem;
+
 	/* Shared between thread.c and synch.c. */
 	struct list_elem elem;              /* List element. */
 
@@ -120,6 +126,14 @@ void thread_sleep (int64_t ticks);
 void thread_awake (int64_t ticks);
 void update_next_tick_to_awake (int64_t ticks);
 int64_t get_next_tick_to_awake (void);
+
+/* project1-Priority Scheduling */
+bool thread_compare_priority (struct list_elem *l, struct list_elem *s, void *aux UNUSED);
+void thread_test_preemption (void);
+
+/* project1-Priority Donation */
+bool thread_compare_donate_priority(const struct list_elem *l, const struct list_elem *s, void *aux);
+
 
 void thread_init (void);
 void thread_start (void);
