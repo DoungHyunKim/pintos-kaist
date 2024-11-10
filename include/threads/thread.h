@@ -28,6 +28,11 @@ typedef int tid_t;
 #define PRI_DEFAULT 31                  /* Default priority. */
 #define PRI_MAX 63                      /* Highest priority. */
 
+/** project1-MLFQ */
+#define NICE_DEFAULT 0
+#define RECENT_CPU_DEFAULT 0
+#define LOAD_AVG_DEFAULT 0
+
 /* A kernel thread or user process.
  *
  * Each thread structure is stored in its own 4 kB page.  The
@@ -93,8 +98,19 @@ struct thread {
 	int priority;                       /* Priority. */
 	int64_t wakeup_tick;                /* project1-Alarm Clock */
 
+	/* project1-Priority Donation*/
+	int init_priority; // 초기 우선 순위를 저장해야 나중에 돌리지. 
+	struct lock *wait_on_lock;
+	struct list donations;
+	struct list_elem donation_elem;
+
 	/* Shared between thread.c and synch.c. */
 	struct list_elem elem;              /* List element. */
+
+	/* project1-MLFQ */
+	int niceness;
+	int recent_cpu;
+	struct list_elem all_elem;
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
@@ -120,14 +136,6 @@ void thread_sleep (int64_t ticks);
 void thread_awake (int64_t ticks);
 void update_next_tick_to_awake (int64_t ticks);
 int64_t get_next_tick_to_awake (void);
-/* project1-Priority Scheduling */
-void test_max_priority(void);
-bool cmp_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
-// struct thread *thread_get_idle_thread(void);
-/** project1-Priority Scheduling */
-void test_max_priority(void);
-bool cmp_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
-
 
 void thread_init (void);
 void thread_start (void);
@@ -156,7 +164,17 @@ void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 
-void do_iret (struct intr_frame *tf);
+/* project1-Priority Scheduling */
+bool thread_compare_priority (struct list_elem *l, struct list_elem *s, void *aux UNUSED);
+void thread_test_preemption (void);
 
+/* project1-Priority Donation */
+bool thread_compare_donate_priority(const struct list_elem *l, const struct list_elem *s, void *aux);
+void donate_priority(void);
+void remove_with_lock(struct lock *lock);
+void refresh_priority(void);
+
+
+void do_iret (struct intr_frame *tf);
 
 #endif /* threads/thread.h */
